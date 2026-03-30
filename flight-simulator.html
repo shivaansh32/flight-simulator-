@@ -1,0 +1,1274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SKY RACER ✈️</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
+
+  :root {
+    --sky-top: #0a0a2e;
+    --sky-mid: #0d2137;
+    --sky-bot: #1a3a5c;
+    --neon-cyan: #00f5ff;
+    --neon-orange: #ff6b35;
+    --neon-yellow: #ffe135;
+    --neon-green: #39ff14;
+    --cloud: rgba(255,255,255,0.12);
+    --hud: rgba(0,245,255,0.85);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--sky-top);
+    font-family: 'Orbitron', sans-serif;
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: none;
+  }
+
+  #gameContainer {
+    position: relative;
+    width: 100%;
+    max-width: 480px;
+    height: 100vh;
+    overflow: hidden;
+    background: linear-gradient(180deg, #0a0a2e 0%, #0d2137 40%, #1a3a5c 70%, #1a4a2e 100%);
+  }
+
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* HUD */
+  #hud {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  .hud-box {
+    background: rgba(0,0,0,0.5);
+    border: 1px solid var(--neon-cyan);
+    border-radius: 6px;
+    padding: 6px 12px;
+    backdrop-filter: blur(4px);
+  }
+
+  .hud-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: var(--neon-cyan);
+    letter-spacing: 2px;
+    opacity: 0.7;
+  }
+
+  .hud-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--neon-yellow);
+    text-shadow: 0 0 10px var(--neon-yellow);
+    letter-spacing: 1px;
+  }
+
+  /* Screens */
+  .screen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+    padding: 24px;
+    text-align: center;
+  }
+
+  #startScreen {
+    background: linear-gradient(180deg, rgba(10,10,46,0.97) 0%, rgba(13,33,55,0.97) 100%);
+  }
+
+  #gameOver {
+    background: rgba(10,10,46,0.96);
+    display: none;
+  }
+
+  #adScreen {
+    background: rgba(5,5,20,0.99);
+    display: none;
+    z-index: 30;
+  }
+
+  .game-title {
+    font-size: 42px;
+    font-weight: 900;
+    color: var(--neon-cyan);
+    text-shadow: 0 0 20px var(--neon-cyan), 0 0 60px rgba(0,245,255,0.3);
+    letter-spacing: 4px;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .game-subtitle {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--neon-orange);
+    letter-spacing: 4px;
+    margin-bottom: 36px;
+  }
+
+  .plane-emoji {
+    font-size: 64px;
+    animation: float 2s ease-in-out infinite;
+    margin-bottom: 24px;
+    filter: drop-shadow(0 0 20px var(--neon-cyan));
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0) rotate(-5deg); }
+    50% { transform: translateY(-12px) rotate(5deg); }
+  }
+
+  .btn {
+    background: transparent;
+    border: 2px solid var(--neon-cyan);
+    color: var(--neon-cyan);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    padding: 14px 40px;
+    border-radius: 4px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    text-transform: uppercase;
+    transition: all 0.2s;
+    margin: 6px;
+  }
+
+  .btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--neon-cyan);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.2s;
+    z-index: -1;
+  }
+
+  .btn:hover::before, .btn:active::before { transform: scaleX(1); }
+  .btn:hover, .btn:active { color: #000; }
+
+  .btn-orange {
+    border-color: var(--neon-orange);
+    color: var(--neon-orange);
+  }
+  .btn-orange::before { background: var(--neon-orange); }
+
+  .instructions {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: rgba(255,255,255,0.5);
+    line-height: 1.8;
+    margin-bottom: 28px;
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 14px 20px;
+    border-radius: 6px;
+  }
+
+  .score-display {
+    font-size: 48px;
+    font-weight: 900;
+    color: var(--neon-yellow);
+    text-shadow: 0 0 20px var(--neon-yellow);
+    margin: 10px 0;
+  }
+
+  .highscore-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 3px;
+    margin-bottom: 4px;
+  }
+
+  .highscore-val {
+    font-size: 20px;
+    color: var(--neon-green);
+    text-shadow: 0 0 10px var(--neon-green);
+    margin-bottom: 28px;
+  }
+
+  /* Ad Screen */
+  .ad-title {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--neon-orange);
+    letter-spacing: 3px;
+    margin-bottom: 16px;
+  }
+
+  .ad-frame {
+    width: 100%;
+    max-width: 340px;
+    border: 2px solid var(--neon-orange);
+    border-radius: 8px;
+    overflow: hidden;
+    background: #111;
+    margin-bottom: 16px;
+  }
+
+  .ad-frame iframe {
+    width: 100%;
+    height: 260px;
+    border: none;
+    display: block;
+  }
+
+  .countdown-bar-wrap {
+    width: 100%;
+    max-width: 340px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 20px;
+    height: 6px;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+
+  .countdown-bar {
+    height: 100%;
+    background: var(--neon-orange);
+    border-radius: 20px;
+    transition: width 1s linear;
+    box-shadow: 0 0 8px var(--neon-orange);
+  }
+
+  .ad-skip-btn {
+    opacity: 0.3;
+    pointer-events: none;
+    transition: opacity 0.4s;
+  }
+  .ad-skip-btn.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* Controls */
+  #controls {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    display: flex;
+    justify-content: space-between;
+    padding: 16px;
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  .ctrl-btn {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.4);
+    border: 2px solid rgba(0,245,255,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    pointer-events: auto;
+    user-select: none;
+    -webkit-user-select: none;
+    cursor: pointer;
+    transition: background 0.1s, border-color 0.1s;
+    backdrop-filter: blur(4px);
+  }
+
+  .ctrl-btn:active {
+    background: rgba(0,245,255,0.2);
+    border-color: var(--neon-cyan);
+  }
+
+  .ctrl-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+  }
+
+  /* Stars */
+  .stars {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .star {
+    position: absolute;
+    background: white;
+    border-radius: 50%;
+    animation: twinkle var(--d, 2s) ease-in-out infinite;
+  }
+
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.2; }
+    50% { opacity: 1; }
+  }
+
+  /* Crash effect */
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-8px) rotate(-2deg); }
+    40% { transform: translateX(8px) rotate(2deg); }
+    60% { transform: translateX(-6px); }
+    80% { transform: translateX(6px); }
+  }
+
+  .shake { animation: shake 0.4s ease-out; }
+
+  /* Fuel bar */
+  #fuelWrap {
+    position: absolute;
+    top: 70px;
+    right: 16px;
+    width: 8px;
+    height: 80px;
+    background: rgba(0,0,0,0.4);
+    border: 1px solid var(--neon-cyan);
+    border-radius: 4px;
+    overflow: hidden;
+    z-index: 10;
+  }
+
+  #fuelBar {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    background: linear-gradient(to top, var(--neon-orange), var(--neon-yellow));
+    border-radius: 4px;
+    transition: height 0.3s;
+    box-shadow: 0 0 6px var(--neon-orange);
+  }
+
+  .fuel-label {
+    position: absolute;
+    top: 70px;
+    right: 28px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 8px;
+    color: var(--neon-cyan);
+    letter-spacing: 1px;
+    z-index: 10;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    opacity: 0.7;
+  }
+
+  /* Music toggle */
+  #musicBtn {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.5);
+    border: 1px solid var(--neon-cyan);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--neon-cyan);
+    letter-spacing: 2px;
+    cursor: pointer;
+    z-index: 15;
+    backdrop-filter: blur(4px);
+    transition: all 0.2s;
+    user-select: none;
+  }
+  #musicBtn:active { background: rgba(0,245,255,0.15); }
+  #musicBtn.muted { border-color: rgba(0,245,255,0.3); color: rgba(0,245,255,0.35); }
+
+  /* Combo */
+  #combo {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 28px;
+    font-weight: 900;
+    color: var(--neon-yellow);
+    text-shadow: 0 0 20px var(--neon-yellow);
+    z-index: 15;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+</style>
+</head>
+<body>
+
+<div id="gameContainer">
+  <!-- Stars -->
+  <div class="stars" id="stars"></div>
+
+  <!-- Canvas -->
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- Music Toggle -->
+  <div id="musicBtn">🎵 MUSIC</div>
+
+  <!-- HUD -->
+  <div id="hud">
+    <div class="hud-box">
+      <div class="hud-label">SCORE</div>
+      <div class="hud-value" id="scoreDisplay">0</div>
+    </div>
+    <div class="hud-box">
+      <div class="hud-label">ALTITUDE</div>
+      <div class="hud-value" id="altDisplay">---m</div>
+    </div>
+    <div class="hud-box">
+      <div class="hud-label">BEST</div>
+      <div class="hud-value" id="bestDisplay">0</div>
+    </div>
+  </div>
+
+  <!-- Fuel bar -->
+  <div id="fuelWrap"><div id="fuelBar" style="height:100%"></div></div>
+  <div class="fuel-label">FUEL</div>
+
+  <!-- Combo -->
+  <div id="combo">COMBO!</div>
+
+  <!-- Touch Controls -->
+  <div id="controls">
+    <div class="ctrl-group">
+      <div class="ctrl-btn" id="upBtn">⬆️</div>
+      <div class="ctrl-btn" id="downBtn">⬇️</div>
+    </div>
+    <div class="ctrl-group">
+      <div class="ctrl-btn" id="leftBtn">⬅️</div>
+      <div class="ctrl-btn" id="rightBtn">➡️</div>
+    </div>
+  </div>
+
+  <!-- Start Screen -->
+  <div class="screen" id="startScreen">
+    <div class="plane-emoji">✈️</div>
+    <div class="game-title">SKY RACER</div>
+    <div class="game-subtitle">FLIGHT SIMULATOR</div>
+    <div class="instructions">
+      🎮 TOUCH CONTROLS / ARROW KEYS<br>
+      ⬆️⬇️ ALTITUDE &nbsp; ⬅️➡️ SPEED<br>
+      ⭐ COLLECT STARS +10 PTS<br>
+      ⛽ GRAB FUEL CANS<br>
+      💨 AVOID CLOUDS & BIRDS<br>
+      🚀 SURVIVE AS LONG AS YOU CAN
+    </div>
+    <button class="btn" id="startBtn">▶ TAKE OFF</button>
+  </div>
+
+  <!-- Game Over -->
+  <div class="screen" id="gameOver">
+    <div style="font-size:48px;margin-bottom:8px;">💥</div>
+    <div style="font-size:22px;font-weight:900;color:var(--neon-orange);letter-spacing:3px;margin-bottom:4px;">CRASHED!</div>
+    <div class="highscore-label">YOUR SCORE</div>
+    <div class="score-display" id="finalScore">0</div>
+    <div class="highscore-label">BEST</div>
+    <div class="highscore-val" id="finalBest">0</div>
+    <button class="btn" id="restartBtn">↺ FLY AGAIN</button>
+    <button class="btn btn-orange" id="shareBtn">📤 SHARE</button>
+  </div>
+
+  <!-- Ad Screen -->
+  <div class="screen" id="adScreen">
+    <div class="ad-title">⚡ SPONSOR BREAK — QUICK AD ⚡</div>
+    <div class="ad-frame">
+      <iframe id="adIframe" src="about:blank" scrolling="no" frameborder="0"></iframe>
+    </div>
+    <div class="countdown-bar-wrap">
+      <div class="countdown-bar" id="cntBar" style="width:100%"></div>
+    </div>
+    <div style="font-family:'Share Tech Mono',monospace;font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:12px;" id="cntText">Game resumes in 10s...</div>
+    <button class="btn ad-skip-btn" id="skipAdBtn">CONTINUE GAME ✈️</button>
+  </div>
+</div>
+
+<script>
+// ─── CONFIG ────────────────────────────────────────────────────────────────
+const AD_URL     = "https://omg10.com/4/10640741";
+const AD_INTERVAL = 5 * 60 * 1000; // every 5 minutes
+const AD_DURATION = 12;             // seconds before skip unlocks
+
+// ─── GLOBALS ───────────────────────────────────────────────────────────────
+const canvas  = document.getElementById('gameCanvas');
+const ctx     = canvas.getContext('2d');
+const W = () => canvas.width;
+const H = () => canvas.height;
+
+let gameState  = 'start'; // start | playing | dead | ad
+let score      = 0;
+let highScore  = parseInt(localStorage.getItem('skyHigh') || '0');
+let fuel       = 100;
+let speed      = 3;
+let frameCount = 0;
+let lastAdTime = 0;
+let adResumeCallback = null;
+let comboCount = 0;
+let comboTimer = 0;
+
+// ─── PLANE ─────────────────────────────────────────────────────────────────
+const plane = {
+  x: 80, y: 0, vy: 0, vx: 0,
+  w: 52, h: 28,
+  trail: [],
+  tilt: 0,
+};
+
+// ─── OBSTACLES / COLLECTIBLES ───────────────────────────────────────────────
+let clouds   = [];
+let stars    = [];
+let fuels    = [];
+let birds    = [];
+let mountains = [];
+
+// ─── INPUT ─────────────────────────────────────────────────────────────────
+const keys = {};
+document.addEventListener('keydown', e => keys[e.key] = true);
+document.addEventListener('keyup',   e => keys[e.key] = false);
+
+// Touch controls
+function holdBtn(id, key) {
+  const el = document.getElementById(id);
+  el.addEventListener('touchstart', e => { e.preventDefault(); keys[key] = true; }, {passive:false});
+  el.addEventListener('touchend',   e => { e.preventDefault(); keys[key] = false; }, {passive:false});
+  el.addEventListener('mousedown', () => keys[key] = true);
+  el.addEventListener('mouseup',   () => keys[key] = false);
+}
+holdBtn('upBtn',    'ArrowUp');
+holdBtn('downBtn',  'ArrowDown');
+holdBtn('leftBtn',  'ArrowLeft');
+holdBtn('rightBtn', 'ArrowRight');
+
+// ─── RESIZE ────────────────────────────────────────────────────────────────
+function resize() {
+  const c = document.getElementById('gameContainer');
+  canvas.width  = c.clientWidth;
+  canvas.height = c.clientHeight;
+  plane.y = H() / 2;
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ─── STARS (background) ────────────────────────────────────────────────────
+const starsEl = document.getElementById('stars');
+for (let i = 0; i < 40; i++) {
+  const s = document.createElement('div');
+  const size = Math.random() * 2 + 1;
+  s.className = 'star';
+  s.style.cssText = `width:${size}px;height:${size}px;top:${Math.random()*60}%;left:${Math.random()*100}%;--d:${(Math.random()*2+1).toFixed(1)}s;animation-delay:${(Math.random()*2).toFixed(1)}s`;
+  starsEl.appendChild(s);
+}
+
+// ─── SPAWN ─────────────────────────────────────────────────────────────────
+function spawnCloud() {
+  clouds.push({
+    x: W() + 60,
+    y: Math.random() * H() * 0.75,
+    w: 60 + Math.random() * 80,
+    h: 30 + Math.random() * 40,
+    speed: speed * 0.6 + Math.random() * 0.5,
+    opacity: 0.25 + Math.random() * 0.35,
+  });
+}
+
+function spawnStar() {
+  stars.push({
+    x: W() + 30,
+    y: 40 + Math.random() * (H() - 140),
+    r: 14 + Math.random() * 8,
+    angle: 0,
+    pulse: 0,
+    speed: speed * 0.85,
+  });
+}
+
+function spawnFuel() {
+  fuels.push({
+    x: W() + 30,
+    y: 60 + Math.random() * (H() - 160),
+    r: 16,
+    angle: 0,
+    speed: speed * 0.8,
+  });
+}
+
+function spawnBird() {
+  const y = 40 + Math.random() * (H() - 140);
+  birds.push({
+    x: W() + 40,
+    y,
+    vy: (Math.random() - 0.5) * 1.2,
+    w: 28, h: 14,
+    wing: 0,
+    speed: speed + Math.random() * 1.2,
+  });
+}
+
+function spawnMountain() {
+  const h = 60 + Math.random() * 120;
+  mountains.push({
+    x: W(),
+    h,
+    w: 80 + Math.random() * 80,
+    speed: speed * 0.4,
+  });
+}
+
+// ─── DRAW HELPERS ──────────────────────────────────────────────────────────
+function drawSky() {
+  const grad = ctx.createLinearGradient(0, 0, 0, H());
+  grad.addColorStop(0,   '#0a0a2e');
+  grad.addColorStop(0.4, '#0d2137');
+  grad.addColorStop(0.7, '#1a3a5c');
+  grad.addColorStop(1,   '#1a4a2e');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W(), H());
+}
+
+function drawGround() {
+  const gy = H() - 40;
+  const grad = ctx.createLinearGradient(0, gy, 0, H());
+  grad.addColorStop(0, '#1a5c2a');
+  grad.addColorStop(1, '#0a2010');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, gy, W(), 40);
+  // Runway line
+  ctx.strokeStyle = 'rgba(57,255,20,0.3)';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([30, 20]);
+  ctx.lineDashOffset = -frameCount * speed * 0.5;
+  ctx.beginPath();
+  ctx.moveTo(0, gy + 20);
+  ctx.lineTo(W(), gy + 20);
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function drawMountains() {
+  mountains.forEach(m => {
+    const grad = ctx.createLinearGradient(m.x, H() - 40 - m.h, m.x + m.w / 2, H() - 40);
+    grad.addColorStop(0, '#6aa3c8');
+    grad.addColorStop(1, '#2d5a7a');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.moveTo(m.x, H() - 40);
+    ctx.lineTo(m.x + m.w / 2, H() - 40 - m.h);
+    ctx.lineTo(m.x + m.w, H() - 40);
+    ctx.closePath();
+    ctx.fill();
+    // Snow
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.beginPath();
+    ctx.moveTo(m.x + m.w/2, H()-40-m.h);
+    ctx.lineTo(m.x + m.w/2 - m.w*0.12, H()-40-m.h*0.72);
+    ctx.lineTo(m.x + m.w/2 + m.w*0.12, H()-40-m.h*0.72);
+    ctx.closePath();
+    ctx.fill();
+  });
+}
+
+function drawCloud(c) {
+  ctx.save();
+  ctx.globalAlpha = c.opacity;
+  ctx.fillStyle = '#fff';
+  const cx = c.x, cy = c.y, w = c.w, h = c.h;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, w*0.5, h*0.4, 0, 0, Math.PI*2);
+  ctx.ellipse(cx - w*0.2, cy + h*0.1, w*0.3, h*0.3, 0, 0, Math.PI*2);
+  ctx.ellipse(cx + w*0.2, cy + h*0.1, w*0.35, h*0.3, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawStar5(x, y, r, angle) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(angle);
+  ctx.beginPath();
+  for (let i = 0; i < 5; i++) {
+    const a1 = (i * 4 * Math.PI / 5) - Math.PI/2;
+    const a2 = ((i * 4 + 2) * Math.PI / 5) - Math.PI/2;
+    if (i === 0) ctx.moveTo(Math.cos(a1)*r, Math.sin(a1)*r);
+    else ctx.lineTo(Math.cos(a1)*r, Math.sin(a1)*r);
+    ctx.lineTo(Math.cos(a2)*r*0.4, Math.sin(a2)*r*0.4);
+  }
+  ctx.closePath();
+  ctx.fillStyle = '#ffe135';
+  ctx.shadowColor = '#ffe135';
+  ctx.shadowBlur = 14;
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawFuel(f) {
+  ctx.save();
+  ctx.translate(f.x, f.y);
+  ctx.rotate(f.angle);
+  // Can body
+  ctx.fillStyle = '#ff6b35';
+  ctx.shadowColor = '#ff6b35';
+  ctx.shadowBlur = 12;
+  ctx.beginPath();
+  ctx.roundRect(-10, -14, 20, 28, 4);
+  ctx.fill();
+  // Label
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 10px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('⛽', 0, 5);
+  ctx.restore();
+}
+
+function drawBird(b) {
+  ctx.save();
+  ctx.translate(b.x, b.y);
+  ctx.fillStyle = '#222';
+  ctx.strokeStyle = '#555';
+  ctx.lineWidth = 1.5;
+  const wingY = Math.sin(b.wing) * 5;
+  // Body
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 10, 5, 0, 0, Math.PI*2);
+  ctx.fill();
+  // Wings
+  ctx.beginPath();
+  ctx.moveTo(-4, 0); ctx.quadraticCurveTo(-14, wingY - 8, -b.w/2 + 2, wingY);
+  ctx.moveTo(4, 0);  ctx.quadraticCurveTo(14, wingY - 8, b.w/2 - 2, wingY);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawPlane() {
+  const { x, y, tilt, trail } = plane;
+
+  // Trail
+  trail.forEach((pt, i) => {
+    const alpha = (i / trail.length) * 0.5;
+    ctx.beginPath();
+    ctx.arc(pt.x, pt.y, 3 - i/trail.length*2, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(0,245,255,${alpha})`;
+    ctx.fill();
+  });
+
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(tilt);
+
+  // Engine glow
+  ctx.shadowColor = '#00f5ff';
+  ctx.shadowBlur = 20;
+
+  // Fuselage
+  const bodyGrad = ctx.createLinearGradient(-26, -8, 26, 8);
+  bodyGrad.addColorStop(0, '#c8e6ff');
+  bodyGrad.addColorStop(0.5, '#ffffff');
+  bodyGrad.addColorStop(1, '#8ab4d0');
+  ctx.fillStyle = bodyGrad;
+  ctx.beginPath();
+  ctx.moveTo(26, 0);
+  ctx.quadraticCurveTo(10, -9, -20, -6);
+  ctx.lineTo(-26, 0);
+  ctx.quadraticCurveTo(-20, 6, -8, 7);
+  ctx.quadraticCurveTo(10, 9, 26, 0);
+  ctx.closePath();
+  ctx.fill();
+
+  // Wing
+  ctx.fillStyle = '#9ecff0';
+  ctx.beginPath();
+  ctx.moveTo(2, 0);
+  ctx.lineTo(-10, -22);
+  ctx.lineTo(-18, -14);
+  ctx.lineTo(-4, 0);
+  ctx.closePath();
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(2, 0);
+  ctx.lineTo(-10, 22);
+  ctx.lineTo(-18, 14);
+  ctx.lineTo(-4, 0);
+  ctx.closePath();
+  ctx.fill();
+
+  // Tail
+  ctx.fillStyle = '#7ab8e0';
+  ctx.beginPath();
+  ctx.moveTo(-18, 0); ctx.lineTo(-26, -12); ctx.lineTo(-20, -6); ctx.closePath(); ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(-18, 0); ctx.lineTo(-26, 12); ctx.lineTo(-20, 6); ctx.closePath(); ctx.fill();
+
+  // Window
+  ctx.fillStyle = '#a0d8ff';
+  ctx.shadowBlur = 0;
+  ctx.beginPath(); ctx.ellipse(8, -2, 5, 4, 0, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.6)';
+  ctx.beginPath(); ctx.ellipse(9, -3, 2, 2, 0, 0, Math.PI*2); ctx.fill();
+
+  // Engine flame
+  const t = frameCount * 0.15;
+  ctx.fillStyle = `rgba(255,${Math.floor(130+Math.sin(t)*30)},0,0.8)`;
+  ctx.beginPath();
+  ctx.ellipse(-26, 0, 8 + Math.sin(t)*3, 4, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+// ─── COLLISION (circle-rect) ────────────────────────────────────────────────
+function circRect(cx, cy, cr, rx, ry, rw, rh) {
+  const nearX = Math.max(rx, Math.min(cx, rx + rw));
+  const nearY = Math.max(ry, Math.min(cy, ry + rh));
+  const dx = cx - nearX, dy = cy - nearY;
+  return dx*dx + dy*dy < cr*cr;
+}
+
+function circCirc(x1, y1, r1, x2, y2, r2) {
+  const dx = x1-x2, dy = y1-y2;
+  return dx*dx+dy*dy < (r1+r2)*(r1+r2);
+}
+
+// ─── INIT ──────────────────────────────────────────────────────────────────
+function initGame() {
+  score = 0; fuel = 100; speed = 3; frameCount = 0;
+  comboCount = 0; comboTimer = 0;
+  plane.x = 80; plane.y = H()/2; plane.vy = 0; plane.vx = 0; plane.tilt = 0;
+  plane.trail = [];
+  clouds = []; stars = []; fuels = []; birds = []; mountains = [];
+  lastAdTime = Date.now();
+  updateHUD();
+}
+
+// ─── HUD ───────────────────────────────────────────────────────────────────
+function updateHUD() {
+  document.getElementById('scoreDisplay').textContent = score;
+  document.getElementById('altDisplay').textContent   = Math.floor((H() - plane.y) / H() * 999) + 'm';
+  document.getElementById('bestDisplay').textContent  = highScore;
+  document.getElementById('fuelBar').style.height     = fuel + '%';
+  if (fuel < 25) document.getElementById('fuelBar').style.background = '#ff3333';
+  else document.getElementById('fuelBar').style.background = 'linear-gradient(to top, var(--neon-orange), var(--neon-yellow))';
+}
+
+// ─── SHOW COMBO ────────────────────────────────────────────────────────────
+function showCombo() {
+  const el = document.getElementById('combo');
+  comboCount++;
+  comboTimer = 90;
+  el.textContent = comboCount > 1 ? `x${comboCount} COMBO!` : 'NICE!';
+  el.style.opacity = '1';
+}
+
+// ─── AD ────────────────────────────────────────────────────────────────────
+function showAd(onDone) {
+  gameState = 'ad';
+  adResumeCallback = onDone;
+  const adScreen = document.getElementById('adScreen');
+  const iframe   = document.getElementById('adIframe');
+  const skipBtn  = document.getElementById('skipAdBtn');
+  const cntBar   = document.getElementById('cntBar');
+  const cntText  = document.getElementById('cntText');
+
+  adScreen.style.display = 'flex';
+  iframe.src = AD_URL;
+  skipBtn.classList.remove('active');
+  cntBar.style.width = '100%';
+  cntBar.style.transition = 'none';
+
+  let remaining = AD_DURATION;
+  cntText.textContent = `Game resumes in ${remaining}s...`;
+
+  setTimeout(() => {
+    cntBar.style.transition = `width ${AD_DURATION}s linear`;
+    cntBar.style.width = '0%';
+  }, 50);
+
+  const tick = setInterval(() => {
+    remaining--;
+    cntText.textContent = remaining > 0 ? `Game resumes in ${remaining}s...` : 'Ready!';
+    if (remaining <= 0) {
+      clearInterval(tick);
+      skipBtn.classList.add('active');
+    }
+  }, 1000);
+}
+
+document.getElementById('skipAdBtn').addEventListener('click', () => {
+  document.getElementById('adScreen').style.display = 'none';
+  document.getElementById('adIframe').src = 'about:blank';
+  gameState = 'playing';
+  Music.resume();
+  if (adResumeCallback) adResumeCallback();
+});
+
+// ─── CRASH ─────────────────────────────────────────────────────────────────
+function crash() {
+  if (gameState !== 'playing') return;
+  gameState = 'dead';
+  if (score > highScore) { highScore = score; localStorage.setItem('skyHigh', highScore); }
+  document.getElementById('finalScore').textContent = score;
+  document.getElementById('finalBest').textContent  = highScore;
+  document.getElementById('gameContainer').classList.add('shake');
+  setTimeout(() => document.getElementById('gameContainer').classList.remove('shake'), 500);
+  setTimeout(() => { document.getElementById('gameOver').style.display = 'flex'; }, 600);
+}
+
+// ─── UPDATE ────────────────────────────────────────────────────────────────
+function update() {
+  if (gameState !== 'playing') return;
+  frameCount++;
+
+  // Difficulty
+  speed = 3 + Math.min(score / 200, 6);
+
+  // Input
+  const upP    = keys['ArrowUp']    || keys['w'];
+  const downP  = keys['ArrowDown']  || keys['s'];
+  const leftP  = keys['ArrowLeft']  || keys['a'];
+  const rightP = keys['ArrowRight'] || keys['d'];
+
+  const accel = 0.32, maxVy = 6, maxVx = 3, drag = 0.88;
+
+  if (upP)    plane.vy -= accel;
+  if (downP)  plane.vy += accel;
+  if (leftP)  plane.vx -= accel * 0.5;
+  if (rightP) plane.vx += accel * 0.5;
+
+  plane.vy = Math.max(-maxVy, Math.min(maxVy, plane.vy));
+  plane.vx = Math.max(-maxVx, Math.min(maxVx, plane.vx));
+  plane.vy *= drag; plane.vx *= drag;
+
+  plane.y += plane.vy; plane.x += plane.vx;
+
+  // Bounds
+  const minY = 20, maxY = H() - 55;
+  if (plane.y < minY) { plane.y = minY; plane.vy = Math.abs(plane.vy) * 0.5; }
+  if (plane.y > maxY) { crash(); return; }
+  plane.x = Math.max(30, Math.min(W() - 30, plane.x));
+
+  // Tilt
+  plane.tilt += (plane.vy * 0.07 - plane.tilt) * 0.15;
+
+  // Trail
+  plane.trail.push({ x: plane.x - 28, y: plane.y });
+  if (plane.trail.length > 14) plane.trail.shift();
+
+  // Fuel drain
+  fuel -= 0.045 + speed * 0.005;
+  if (fuel <= 0) { fuel = 0; crash(); return; }
+
+  // Score
+  if (frameCount % 18 === 0) score++;
+
+  // Combo fade
+  if (comboTimer > 0) { comboTimer--; }
+  else { document.getElementById('combo').style.opacity = '0'; comboCount = 0; }
+
+  // Spawn
+  if (frameCount % 80 === 0) spawnCloud();
+  if (frameCount % (120 - Math.floor(score/10)) === 0) spawnStar();
+  if (frameCount % 300 === 0) spawnFuel();
+  if (frameCount % (150 - Math.floor(speed*8)) === 0) spawnBird();
+  if (frameCount % 180 === 0) spawnMountain();
+
+  // Move clouds
+  clouds = clouds.filter(c => c.x + c.w > 0);
+  clouds.forEach(c => { c.x -= c.speed; });
+
+  // Move mountains
+  mountains = mountains.filter(m => m.x + m.w > 0);
+  mountains.forEach(m => { m.x -= m.speed; });
+
+  // Stars
+  stars = stars.filter(s => s.x + s.r > 0);
+  stars.forEach(s => {
+    s.x -= s.speed;
+    s.angle += 0.04;
+    s.pulse = (s.pulse + 0.08) % (Math.PI * 2);
+    // Collect
+    if (circCirc(plane.x, plane.y, 18, s.x, s.y, s.r)) {
+      score += 10 + comboCount * 2;
+      showCombo();
+      s.x = -999;
+    }
+    // Dodge danger — clouds only
+  });
+
+  // Fuel cans
+  fuels = fuels.filter(f => f.x + f.r > 0);
+  fuels.forEach(f => {
+    f.x -= f.speed;
+    f.angle += 0.04;
+    if (circCirc(plane.x, plane.y, 18, f.x, f.y, f.r)) {
+      fuel = Math.min(100, fuel + 25);
+      f.x = -999;
+    }
+  });
+
+  // Birds
+  birds = birds.filter(b => b.x + b.w > 0);
+  birds.forEach(b => {
+    b.x -= b.speed;
+    b.y += b.vy;
+    b.wing += 0.25;
+    if (b.y < 30) b.vy = Math.abs(b.vy);
+    if (b.y > H() - 80) b.vy = -Math.abs(b.vy);
+    if (circRect(plane.x, plane.y, 16, b.x - b.w/2, b.y - b.h/2, b.w, b.h)) {
+      crash(); return;
+    }
+  });
+
+  // Cloud collision
+  clouds.forEach(c => {
+    const cx = c.x, cy = c.y, cw = c.w, ch = c.h;
+    if (plane.x > cx - cw/2 && plane.x < cx + cw/2 &&
+        plane.y > cy - ch/2 && plane.y < cy + ch/2) {
+      if (c.opacity > 0.45) { crash(); return; }
+    }
+  });
+
+  updateHUD();
+}
+
+// ─── DRAW ──────────────────────────────────────────────────────────────────
+function draw() {
+  ctx.clearRect(0, 0, W(), H());
+  drawSky();
+  drawMountains();
+  drawGround();
+
+  clouds.forEach(drawCloud);
+
+  // Stars (collectibles)
+  stars.forEach(s => {
+    const pulse = 1 + Math.sin(s.pulse) * 0.15;
+    drawStar5(s.x, s.y, s.r * pulse, s.angle);
+  });
+
+  // Fuel cans
+  fuels.forEach(drawFuel);
+
+  // Birds
+  birds.forEach(drawBird);
+
+  drawPlane();
+
+  // Horizon glow
+  const hg = ctx.createLinearGradient(0, H()*0.6, 0, H()*0.75);
+  hg.addColorStop(0, 'rgba(255,107,53,0)');
+  hg.addColorStop(1, 'rgba(255,107,53,0.08)');
+  ctx.fillStyle = hg;
+  ctx.fillRect(0, H()*0.6, W(), H()*0.15);
+}
+
+// ─── LOOP ──────────────────────────────────────────────────────────────────
+function loop() {
+  update();
+  if (gameState === 'playing') draw();
+  requestAnimationFrame(loop);
+}
+
+// ─── BUTTONS ───────────────────────────────────────────────────────────────
+let loopStarted = false;
+
+function startNewGame() {
+  Music.stop();
+  setTimeout(() => Music.start(), 100);
+  initGame();
+  gameState = 'playing';
+  if (!loopStarted) { loopStarted = true; loop(); }
+}
+
+document.getElementById('startBtn').addEventListener('click', () => {
+  document.getElementById('startScreen').style.display = 'none';
+  showAd(startNewGame);
+});
+
+document.getElementById('restartBtn').addEventListener('click', () => {
+  document.getElementById('gameOver').style.display = 'none';
+  showAd(startNewGame);
+});
+
+document.getElementById('shareBtn').addEventListener('click', () => {
+  const txt = `🚀 I scored ${score} in Sky Racer! Can you beat me? ✈️`;
+  if (navigator.share) navigator.share({ title: 'Sky Racer', text: txt });
+  else { navigator.clipboard?.writeText(txt); alert('Score copied! Share with friends 🚀'); }
+});
+
+// ─── MUSIC ENGINE (Web Audio API — no files needed) ────────────────────────
+const Music = (() => {
+  let ctx, masterGain, reverbNode, playing = false, muted = false;
+  let oscillators = [], lfoList = [], scheduledIds = [];
+  let startTime = 0;
+
+  // Soothing ambient scale: C pentatonic major + add9
+  const SCALE = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25];
+
+  function note(freq, startAt, dur, vol = 0.12, type = 'sine') {
+    if (!ctx) return;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const now = ctx.currentTime + startAt;
+
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, now);
+    // gentle vibrato
+    const vib = ctx.createOscillator();
+    const vibGain = ctx.createGain();
+    vib.frequency.value = 4.5;
+    vibGain.gain.value = freq * 0.003;
+    vib.connect(vibGain);
+    vibGain.connect(osc.frequency);
+    vib.start(now);
+    vib.stop(now + dur + 0.1);
+
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(vol, now + 0.08);
+    gain.gain.setValueAtTime(vol, now + dur - 0.25);
+    gain.gain.linearRampToValueAtTime(0, now + dur);
+
+    osc.connect(gain);
+    gain.connect(reverbNode || masterGain);
+
+    osc.start(now);
+    osc.stop(now + dur + 0.05);
+  }
+
+  function chord(freqs, startAt, dur) {
+    freqs.forEach(f => note(f, startAt, dur, 0.07, 'sine'));
+  }
+
+  function makeReverb() {
+    const len = ctx.sampleRate * 2.5;
+    const buf = ctx.createBuffer(2, len, ctx.sampleRate);
+    for (let c = 0; c < 2; c++) {
+      const d = buf.getChannelData(c);
+      for (let i = 0; i < len; i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/len, 2.5);
+    }
+    const conv = ctx.createConvolver();
+    conv.buffer = buf;
+    const wet = ctx.createGain(); wet.gain.value = 0.35;
+    conv.connect(wet); wet.connect(masterGain);
+    return conv;
+  }
+
+  // Pad loop — slow, dreamy chords every 3 seconds
+  function schedulePads() {
+    if (!playing || muted) return;
+    const now = ctx.currentTime;
+    const elapsed = now - startTime;
+    const beat = 3; // seconds per chord
+    const idx = Math.floor(elapsed / beat) % 8;
+
+    // Ambient chord voicings
+    const voicings = [
+      [SCALE[0], SCALE[2], SCALE[4]],       // C-E-G
+      [SCALE[1], SCALE[3], SCALE[5]],       // D-F-A
+      [SCALE[2], SCALE[4], SCALE[6]],       // E-G-B
+      [SCALE[0], SCALE[3], SCALE[5]],       // C-F-A
+      [SCALE[1], SCALE[2], SCALE[4]],       // D-E-G
+      [SCALE[3], SCALE[5], SCALE[7]],       // F-A-B
+      [SCALE[0], SCALE[4], SCALE[6]],       // C-G-B
+      [SCALE[2], SCALE[3], SCALE[5]],       // E-F-A
+    ];
+    chord(voicings[idx], 0, beat * 0.95);
+    // octave down pad
+    chord(voicings[idx].map(f => f/2), 0, beat * 0.95);
+
+    const id = setTimeout(schedulePads, beat * 1000);
+    scheduledIds.push(id);
+  }
+
+  // Melody — random pentatonic notes, sparse
+  function scheduleMelody() {
+    if (!playing || muted) return;
+    const gap = 0.6 + Math.random() * 1.4;
+    const freq = SCALE[Math.floor(Math.random() * SCALE.length)] * 2;
+    const dur  = 0.3 + Math.random() * 0.7;
+    note(freq, 0, dur, 0.06 + Math.random() * 0.05, 'sine');
+    const id = setTimeout(scheduleMelody, gap * 1000);
+    scheduledIds.push(id);
+  }
+
+  // Bass pulse — root note every 2 beats
+  function scheduleBass() {
+    if (!playing || muted) return;
+    note(SCALE[0] / 2, 0, 1.5, 0.1, 'triangle');
+    const id = setTimeout(scheduleBass, 2400);
+    scheduledIds.push(id);
+  }
+
+  return {
+    start() {
+      if (playing) return;
+      try {
+        ctx = new (window.AudioContext || window.webkitAudioContext)();
+        masterGain = ctx.createGain();
+        masterGain.gain.value = muted ? 0 : 0.7;
+        masterGain.connect(ctx.destination);
+        reverbNode = makeReverb();
+        reverbNode.connect(masterGain);
+        startTime = ctx.currentTime;
+        playing = true;
+        schedulePads();
+        setTimeout(scheduleMelody, 800);
+        setTimeout(scheduleBass, 400);
+      } catch(e) { console.warn('Audio not supported', e); }
+    },
+    stop() {
+      playing = false;
+      scheduledIds.forEach(clearTimeout);
+      scheduledIds = [];
+      if (masterGain) {
+        masterGain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.5);
+        setTimeout(() => { try { ctx.close(); } catch(e){} ctx = null; }, 600);
+      }
+    },
+    toggleMute() {
+      muted = !muted;
+      if (ctx && masterGain) masterGain.gain.setTargetAtTime(muted ? 0 : 0.7, ctx.currentTime, 0.3);
+      return muted;
+    },
+    get muted() { return muted; },
+    resume() { if (ctx && ctx.state === 'suspended') ctx.resume(); },
+  };
+})();
+
+// Music toggle button
+document.getElementById('musicBtn').addEventListener('click', () => {
+  Music.resume();
+  if (!Music.muted && document.getElementById('musicBtn').textContent.includes('🎵')) {
+    // already on, mute
+  }
+  const nowMuted = Music.toggleMute();
+  const btn = document.getElementById('musicBtn');
+  btn.textContent = nowMuted ? '🔇 MUTED' : '🎵 MUSIC';
+  btn.classList.toggle('muted', nowMuted);
+});
+
+// Update best on start screen
+document.getElementById('bestDisplay').textContent = highScore;
+</script>
+</body>
+</html>
